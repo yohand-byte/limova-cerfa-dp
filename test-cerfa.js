@@ -1,7 +1,13 @@
 const { CERFAGenerator } = require('./src/index');
 const fs = require('fs').promises;
 
-const GOOGLE_API_KEY = 'AIzaSyBzJcyMPtHONndrh5EalTIH2ToD_nwBjMQ';
+const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
+
+if (!GOOGLE_API_KEY) {
+  console.error('ERREUR: Variable GOOGLE_API_KEY manquante');
+  console.log('Utilisez: export GOOGLE_API_KEY="votre_cle"');
+  process.exit(1);
+}
 
 const project = {
   beneficiary: {
@@ -47,8 +53,6 @@ async function test() {
     console.log('CERFA genere avec succes !');
     console.log('Fichier: test-cerfa-output.pdf');
     console.log('Parcelle:', result.parcelle.section, result.parcelle.numero);
-    console.log('Superficie:', result.parcelle.superficie, 'm2');
-    console.log('Commune:', result.parcelle.commune);
   } catch (error) {
     console.error('Erreur:', error.message);
     console.error(error.stack);
