@@ -2,6 +2,9 @@ const { PDFDocument } = require('pdf-lib');
 const fs = require('fs').promises;
 const path = require('path');
 
+// Use environment variable for consistency (even if not needed for API key)
+const ENV_VAR = process.env.ENV_VAR || '';
+
 async function testMock() {
   try {
     console.log('Test du remplissage PDF (sans geocoding)...');
