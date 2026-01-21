@@ -1,0 +1,18 @@
+{
+  "name": "limova-cerfa-dp",
+  "version": "1.0.0",
+  "description": "Générateur automatique de CERFA 16702-01 et Dossier DP Mairie pour installations photovoltaïques",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["cerfa", "dp", "mairie", "photovoltaique", "solaire", "cadastre"],
+  "author": "Limova - YoyoDev",
+  "license": "MIT",
+  "dependencies": {
+    "pdf-lib": "^1.17.1",
+    "node-fetch": "^2.6.7",
+    "sharp": "^0.32.0"
+  }
+}
