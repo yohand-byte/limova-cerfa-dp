@@ -1,0 +1,30 @@
+# Tests
+tests/
+*.test.js
+
+# Examples
+examples/
+
+# Documentation source
+docs/
+
+# Development files
+.env
+.env.local
+.vscode/
+.idea/
+
+# Git
+.git/
+.gitignore
+
+# Logs
+*.log
+npm-debug.log*
+
+# Coverage
+coverage/
+
+# Build artifacts
+dist/
+build/
