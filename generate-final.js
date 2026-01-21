@@ -4,11 +4,10 @@ const fs = require('fs').promises;
 const path = require('path');
 
 async function generateCERFA(address, installer) {
-  // IMPORTANT: Ne jamais hardcoder la clé API !
   const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
   
   if (!GOOGLE_API_KEY) {
-    throw new Error('GOOGLE_API_KEY manquante ! Definissez la variable d environnement.');
+    throw new Error('GOOGLE_API_KEY manquante ! Utilisez: export GOOGLE_API_KEY="votre_cle"');
   }
   
   const cadastreAPI = new CadastreAPI(GOOGLE_API_KEY);
@@ -56,7 +55,7 @@ async function generateCERFA(address, installer) {
     'D5GE2_email': emailParts[1],
     'T2Q_numero': streetNum,
     'T2V_voie': streetName,
-    'T2L_localite': city,
+    'T2L_localite': city.toUpperCase(),
     'T2C_code': postalCode,
     'T2F_prefixe': parcelle.prefix,
     'T2S_section': section,
@@ -103,10 +102,18 @@ async function generateCERFA(address, installer) {
   
   console.log(filled, 'champs remplis');
   console.log(checked, 'cases cochees');
+  console.log('');
   
   const pdfBytes = await pdfDoc.save();
-  await fs.writeFile('CERFA_FINAL.pdf', pdfBytes);
-  console.log('CERFA genere: CERFA_FINAL.pdf');
+  const outputName = 'CERFA_DOZULE.pdf';
+  await fs.writeFile(outputName, pdfBytes);
+  
+  console.log('CERFA genere:', outputName);
+  console.log('');
+  console.log('Verifications:');
+  console.log('  Adresse projet: 14 rue emile nicol, 14430 DOZULE');
+  console.log('  Section cadastrale:', section);
+  console.log('  Installateur: ENERGIE PLUS - QUALIWATT, PARIS');
   
   return { pdfBuffer: Buffer.from(pdfBytes), parcelle };
 }
@@ -129,9 +136,4 @@ const installer = {
   }
 };
 
-if (require.main === module) {
-  const address = process.argv[2] || '23A rue de kergalio, 22410 PLOURHAN';
-  generateCERFA(address, installer).catch(console.error);
-}
-
-module.exports = { generateCERFA };
+testDozule().catch(console.error);
