@@ -1,92 +1,91 @@
-const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
+const { StandardFonts, rgb } = require('pdf-lib');
 
 class PDFFiller {
   async fillInteractiveForm(pdfDoc, data) {
-    try {
-      const form = pdfDoc.getForm();
-      const fields = form.getFields();
-      
-      console.log(`📝 Champs du formulaire détectés: ${fields.length}`);
-      
-      const fieldMapping = {
-        'denomination': data.installer?.company || '',
-        'raison_sociale': data.installer?.legalName || '',
-        'siret': data.installer?.siret || '',
-        'representant_nom': data.installer?.contact?.lastName || '',
-        'representant_prenom': data.installer?.contact?.firstName || '',
-        'declarant_telephone': data.installer?.contact?.phone || '',
-        'declarant_email': data.installer?.contact?.email || '',
-        'declarant_adresse_voie': data.installer?.address?.street || '',
-        'declarant_code_postal': data.installer?.address?.postalCode || '',
-        'declarant_ville': data.installer?.address?.city || '',
-        'beneficiaire_nom': data.project?.beneficiary?.lastName || '',
-        'beneficiaire_prenom': data.project?.beneficiary?.firstName || '',
-        'terrain_adresse_voie': data.project?.beneficiary?.address?.street || '',
-        'terrain_code_postal': data.project?.beneficiary?.address?.postalCode || '',
-        'terrain_ville': data.project?.beneficiary?.address?.city || '',
-        'cadastre_prefixe': data.parcelle?.prefix || '',
-        'cadastre_section': data.parcelle?.section || '',
-        'cadastre_numero': data.parcelle?.numero || '',
-        'cadastre_superficie': data.parcelle?.superficie?.toString() || '',
-        'projet_description': 'Installation de panneaux photovoltaïques',
-        'projet_puissance': data.project?.installation?.powerKwc?.toString() || ''
-      };
-      
-      for (const [fieldName, value] of Object.entries(fieldMapping)) {
-        try {
-          const field = form.getTextField(fieldName);
-          if (field && value) {
-            field.setText(value);
-          }
-        } catch (err) {
-          console.log(`⚠️ Champ "${fieldName}" non trouvé`);
-        }
+    const form = pdfDoc.getForm();
+    
+    const addr = data.project.beneficiary.address;
+    const streetMatch = addr.street.match(/^\d+[A-Z]?/);
+    const streetNum = streetMatch ? streetMatch[0] : '';
+    const streetName = addr.street.replace(/^\d+[A-Z]?\s*/, '');
+    
+    const installerStreetNum = data.installer.address.street.split(' ')[0];
+    const installerStreetName = data.installer.address.street.replace(/^\d+\s*/, '');
+    const emailParts = data.installer.contact.email.split('@');
+    const dateStr = new Date().toLocaleDateString('fr-FR').replace(/\//g, '');
+    
+    // Use first parcelle from array
+    const parcelle = data.parcelle.parcelles ? data.parcelle.parcelles[0] : data.parcelle;
+    
+    const fields = {
+      'D2D_denomination': data.installer.company,
+      'D2R_raison': data.installer.legalName || data.installer.company,
+      'D2S_siret': data.installer.siret,
+      'D2J_type': data.installer.companyType || 'SASU',
+      'D2N_nom': data.installer.contact.lastName,
+      'D2P_prenom': data.installer.contact.firstName,
+      'D3N_numero': installerStreetNum,
+      'D3V_voie': installerStreetName,
+      'D3L_localite': data.installer.address.city,
+      'D3C_code': data.installer.address.postalCode,
+      'D3T_telephone': data.installer.contact.phone,
+      'D5GE1_email': emailParts[0],
+      'D5GE2_email': emailParts[1],
+      'T2Q_numero': streetNum,
+      'T2V_voie': streetName,
+      'T2L_localite': addr.city.toUpperCase(),
+      'T2C_code': addr.postalCode,
+      'T2F_prefixe': parcelle.prefix || '000',
+      'T2S_section': parcelle.section,
+      'T2N_numero': parcelle.numero,
+      'T2T_superficie': parcelle.superficie.toString(),
+      'D5T_total': parcelle.superficie.toString(),
+      'C2ZD1_description': data.project.description || 'Installation de panneaux photovoltaiques sur toiture',
+      'C2ZP1_crete': data.project.installation?.powerKwc?.toString() || '',
+      'C2ZR1_destination': 'Autoconsommation avec revente surplus',
+      'E1L_lieu': data.installer.address.city,
+      'E1D_date': dateStr
+    };
+    
+    const checkboxes = {
+      'C2ZB1_existante': true,
+      'C2ZI1_agrivoltaique': true,
+      'D5A_acceptation': true,
+      'T3B_CUnc': true,
+      'T3S_lotnc': true,
+      'T3T_ZACnc': true,
+      'T3E_AFUnc': true,
+      'T3F_PUPnc': true
+    };
+    
+    console.log('📝 Remplissage des champs CERFA...');
+    let filled = 0;
+    
+    for (const [name, value] of Object.entries(fields)) {
+      try {
+        form.getTextField(name).setText(String(value));
+        filled++;
+      } catch (err) {
+        console.log(`⚠️ Champ "${name}" non trouvé`);
       }
-      
-      form.flatten();
-      return pdfDoc;
-    } catch (error) {
-      console.error('❌ Erreur fillInteractiveForm:', error);
-      throw error;
     }
+    
+    for (const [name, value] of Object.entries(checkboxes)) {
+      try {
+        const field = form.getCheckBox(name);
+        if (value) field.check();
+        else field.uncheck();
+        filled++;
+      } catch (err) {}
+    }
+    
+    console.log(`✅ ${filled} champs remplis`);
+    return pdfDoc;
   }
 
   async fillByCoordinates(pdfDoc, data) {
-    try {
-      const pages = pdfDoc.getPages();
-      const firstPage = pages[0];
-      const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-      const fontSize = 10;
-      
-      const fields = [
-        { text: data.installer?.company || '', x: 150, y: 700 },
-        { text: data.installer?.siret || '', x: 150, y: 680 },
-        { text: data.installer?.contact?.lastName || '', x: 150, y: 660 },
-        { text: data.installer?.contact?.firstName || '', x: 300, y: 660 },
-        { text: data.project?.beneficiary?.address?.street || '', x: 150, y: 500, page: 1 },
-        { text: data.project?.beneficiary?.address?.postalCode || '', x: 150, y: 480, page: 1 },
-        { text: data.project?.beneficiary?.address?.city || '', x: 250, y: 480, page: 1 },
-        { text: data.parcelle?.section || '', x: 150, y: 450, page: 1 },
-        { text: data.parcelle?.numero || '', x: 200, y: 450, page: 1 },
-        { text: data.parcelle?.superficie?.toString() || '', x: 300, y: 450, page: 1 }
-      ];
-      
-      for (const field of fields) {
-        const page = field.page !== undefined ? pages[field.page] : firstPage;
-        page.drawText(field.text, {
-          x: field.x,
-          y: field.y,
-          size: fontSize,
-          font: font,
-          color: rgb(0, 0, 0)
-        });
-      }
-      
-      return pdfDoc;
-    } catch (error) {
-      console.error('❌ Erreur fillByCoordinates:', error);
-      throw error;
-    }
+    console.log('⚠️ Fallback: remplissage par coordonnées non implémenté');
+    return pdfDoc;
   }
 }
 
