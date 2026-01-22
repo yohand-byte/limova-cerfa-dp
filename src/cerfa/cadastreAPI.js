@@ -1,26 +1,28 @@
 const fetch = require('node-fetch');
 
 class CadastreAPI {
-  constructor(googleApiKey) {
-    this.googleApiKey = googleApiKey;
+  constructor() {
+    // No API key needed - using free French government APIs
     this.cadastreBaseUrl = 'https://apicarto.ign.fr/api/cadastre';
   }
 
   async geocodeAddress(address) {
     try {
-      const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${this.googleApiKey}`;
+      // Using FREE French government geocoding API instead of Google Maps
+      const url = `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(address)}&limit=1`;
       const response = await fetch(url);
       const data = await response.json();
 
-      if (data.status === 'OK' && data.results.length > 0) {
-        const location = data.results[0].geometry.location;
+      if (data.features && data.features.length > 0) {
+        const feature = data.features[0];
+        const coords = feature.geometry.coordinates;
         return {
-          lat: location.lat,
-          lon: location.lng,
-          formatted: data.results[0].formatted_address
+          lat: coords[1],
+          lon: coords[0],
+          formatted: feature.properties.label
         };
       }
-      throw new Error(`Geocoding failed: ${data.status}`);
+      throw new Error('Geocoding failed: Address not found');
     } catch (error) {
       console.error('Geocoding error:', error);
       throw error;
@@ -29,7 +31,7 @@ class CadastreAPI {
 
   async getParcelleFromCoords(lat, lon) {
     try {
-      const url = `${this.cadastreBaseUrl}/parcelle?geom={"type":"Point","coordinates":[${lon},${lat}]}`;
+      const url = `${this.cadastreBaseUrl}/parcelle?geom={\"type\":\"Point\",\"coordinates\":[${lon},${lat}]}`;
       const response = await fetch(url);
       const data = await response.json();
 
