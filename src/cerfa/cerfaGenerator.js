@@ -6,11 +6,11 @@ const PDFFiller = require('./pdfFiller');
 const AnnexGenerator = require('./annexGenerator');
 
 class CERFAGenerator {
-  constructor(googleApiKey) {
-    this.googleApiKey = googleApiKey;
-    this.cadastreAPI = new CadastreAPI(googleApiKey);
+  constructor() {
+    // No API key needed - using free French government APIs
+    this.cadastreAPI = new CadastreAPI();
     this.pdfFiller = new PDFFiller();
-    this.annexGenerator = new AnnexGenerator(googleApiKey);
+    this.annexGenerator = new AnnexGenerator();
     this.templatePath = path.join(__dirname, 'templates', 'cerfa_16702-01.pdf');
   }
 
